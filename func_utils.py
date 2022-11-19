@@ -16,9 +16,9 @@ def filterByColumnValues(df, columnName, valuesList):
 
 def getTableColumn(df, columnName, unique):
     if (unique):
-        return df[columnName].unique()
+        return df[columnName].unique().tolist()
     else :
-        return df[columnName]   
+        return df[columnName].tolist()   
 
 def separateDfByCountry(df,countriesList):
     df_list=[]
@@ -47,3 +47,39 @@ def buildValuesStringFromList(valuesList):
     valuesString = valuesString[:-1] #return string removing last character(because it's a ',' char)
     valuesString = valuesString + ')'   
     return valuesString
+
+#Compute the Zscore column of a dataframe, when grouping by the value 
+#of a specific column
+#Example: Zscore of the values from column 'amount/work_hours'
+# , grouping by the 'component'   
+
+def computeZScoreColumn(df, groupByColumn, columnName):
+
+    # Contains a dictionary of dictionaries containing the components 
+    # distribution features (average, standard deviation) 
+    # The keys of the parent dictionary are the components names
+    componentsDistribValues = {} 
+
+    uniqueComponents = getTableColumn(df,groupByColumn,True)
+
+    for component in uniqueComponents:
+        componentDf = filterByColumnValues(df,groupByColumn,[component])
+        componentValuesList = getTableColumn(componentDf,columnName,False)
+        #componentsDistribValues.append(getComponentDistribDictionary(componentValuesList,component))
+        componentsDistribValues[component] = getComponentDistribDictionary(componentValuesList)
+
+    zScoreColumn = []
+    valuesList = getTableColumn(df, columnName, False)
+    componentsList = getTableColumn(df, groupByColumn, False)
+
+    for i in range(0,len(valuesList)):
+        value = valuesList[i]
+        mean = componentsDistribValues[componentsList[i]]["mean"]
+        st_dev = componentsDistribValues[componentsList[i]]["st_dev"]
+
+        zScoreColumn.append((value - mean)/st_dev)
+
+    return zScoreColumn
+
+def getComponentDistribDictionary(componentValuesList):
+    return {"mean" : np.average(componentValuesList), "st_dev" : np.sqrt(np.var(componentValuesList))}    
